@@ -5,14 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
 )
-
-var durationRegexp = regexp.MustCompile(
-	`P(?P<years>\d+Y)?(?P<months>\d+M)?(?P<days>\d+D)?T?(?P<hours>\d+H)?(?P<minutes>\d+M)?(?P<seconds>\d+\.?\d*S)?`)
 
 const (
 	hoursInYear   = time.Duration(24*365) * time.Hour
@@ -39,24 +35,24 @@ const (
 
 func parseISODateDuration(dur string) ([7]float64, error) {
 	// Example: d := "P3Y6M4DT12H30M5S"
-
-	// Matches store.
-	m := [7]float64{}
+	// Validation
 	if dur == "" {
-		return m, errors.New("error: empty")
+		return [7]float64{}, errors.New("error: empty")
 	}
 	if len(dur) <= 2 {
-		return m, errors.New("error: duration is too short to be valid")
+		return [7]float64{}, errors.New("error: duration is too short to be valid")
 	}
 	// Ensure duration starts with 'P'.
 	if dur[0] != seps[0] {
-		return m, errors.New("error: missing 'P' prefix")
+		return [7]float64{}, errors.New("error: missing 'P' prefix")
 	}
-	// Index pointers for duration and separator strings, and matches slice.
-	di := 1
-	si := 1
-	mi := 0
+	// Matches store.
+	m := [7]float64{}
+	// Duration value buffer.
 	b := bytes.NewBuffer(make([]byte, 0, 64))
+	// Index pointers for duration and separator strings, and matches slice.
+	// Skip P for the first two.
+	di, si, mi := 1, 1, 0
 	// Loop over duration, collecting number then character, repeatedly.
 	for si < len(seps) {
 		if di >= len(dur) {
@@ -70,13 +66,12 @@ func parseISODateDuration(dur string) ([7]float64, error) {
 		if dur[di] == '.' {
 			b.WriteByte(dur[di])
 			di++
-			if dur[di] >= '0' && dur[di] <= '9' {
-				for dur[di] >= '0' && dur[di] <= '9' {
-					b.WriteByte(dur[di])
-					di++
-				}
-			} else {
+			if dur[di] < '0' || dur[di] > '9' {
 				return m, errors.New("error: missing digit after decimal")
+			}
+			for dur[di] >= '0' && dur[di] <= '9' {
+				b.WriteByte(dur[di])
+				di++
 			}
 		}
 		// Consume letter.
@@ -140,22 +135,7 @@ func castDuration(value string) (time.Duration, error) {
 	hours := floatToDuration(matches[4], hourNanos)
 	minutes := floatToDuration(matches[5], minuteNanos)
 	seconds := floatToDuration(matches[6], secondNanos)
-
 	return years + months + days + weeks + hours + minutes + seconds, nil
-}
-
-func castDurationRegex(value string) (time.Duration, error) {
-	matches := durationRegexp.FindStringSubmatch(value)
-	if len(matches) == 0 {
-		return 0, fmt.Errorf("Invalid duration:\"%s\"", value)
-	}
-	years := parseIntDuration(matches[1], hoursInYear)
-	months := parseIntDuration(matches[2], hoursInMonth)
-	days := parseIntDuration(matches[3], hoursInDay)
-	hours := parseIntDuration(matches[4], time.Hour)
-	minutes := parseIntDuration(matches[5], time.Minute)
-	seconds := parseSeconds(matches[6])
-	return years + months + days + hours + minutes + seconds, nil
 }
 
 func parseIntDuration(v string, multiplier time.Duration) time.Duration {

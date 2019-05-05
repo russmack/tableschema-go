@@ -108,33 +108,6 @@ func BenchmarkCastDuration_Error(b *testing.B) {
 	}
 }
 
-/* */
-func BenchmarkCastDurationRegex_Success(b *testing.B) {
-	b.ReportAllocs()
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		for _, d := range castDurationSuccessData {
-			res, _ := castDurationRegex(d.value)
-			_ = res
-		}
-	}
-}
-
-func BenchmarkCastDurationRegex_Error(b *testing.B) {
-	b.ReportAllocs()
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		for _, d := range castDurationErrorData {
-			res, _ := castDurationRegex(d.value)
-			_ = res
-		}
-	}
-}
-
-/* */
-
 func TestCastDuration_Success(t *testing.T) {
 	for _, d := range castDurationSuccessData {
 		t.Run(d.desc, func(t *testing.T) {
@@ -155,30 +128,6 @@ func TestCastDuration_Error(t *testing.T) {
 		})
 	}
 }
-
-/* */
-func TestCastDurationRegex_Success(t *testing.T) {
-	for _, d := range castDurationSuccessData {
-		t.Run(d.desc, func(t *testing.T) {
-			is := is.New(t)
-			got, err := castDurationRegex(d.value)
-			is.NoErr(err)
-			is.Equal(got, d.want)
-		})
-	}
-}
-
-func TestCastDurationRegex_Error(t *testing.T) {
-	for _, d := range castDurationErrorData {
-		t.Run(d.desc, func(t *testing.T) {
-			is := is.New(t)
-			_, err := castDurationRegex(d.value)
-			is.True(err != nil)
-		})
-	}
-}
-
-/* */
 
 func TestUncastDuration(t *testing.T) {
 	t.Run("Success", func(t *testing.T) {
